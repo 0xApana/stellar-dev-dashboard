@@ -163,6 +163,28 @@ export function getSimulationFeeOptions(
 
 export type NetworkName = 'mainnet' | 'testnet' | 'futurenet' | 'local' | 'custom';
 
+export type {
+  NetworkCapabilities,
+  StellarReadSource,
+  NormalizedLedger,
+  NormalizedTransaction,
+  NormalizedEvent,
+  NormalizedOffer,
+  GetLedgersParams,
+  GetLedgersResult,
+  GetTransactionsParams,
+  GetTransactionsResult,
+  GetEventsParams,
+  GetEventsResult,
+  GetOffersParams,
+  GetOffersResult,
+} from './stellar/types';
+export { UnsupportedCapabilityError, RetentionWindowExceededError } from './stellar/types';
+export { HorizonReadSource } from './stellar/horizonReadSource';
+export { RpcReadSource } from './stellar/rpcReadSource';
+export { RpcFirstReadSource } from './stellar/rpcFirstReadSource';
+export { getStellarReadSource, evaluateReadSourceCapabilities } from './stellar/index';
+
 export interface NetworkConfig {
   name: string;
   horizonUrl: string;
@@ -171,6 +193,7 @@ export interface NetworkConfig {
   faucetUrl?: string;
   customHeaders?: Record<string, string>;
   headers?: Record<string, string>;
+  capabilities?: import('./stellar/types').NetworkCapabilities;
 }
 
 export const NETWORKS: Record<NetworkName, NetworkConfig> = {
@@ -179,6 +202,14 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
     horizonUrl: 'https://horizon.stellar.org',
     sorobanUrl: 'https://soroban-rpc.stellar.org',
     passphrase: StellarSdk.Networks.PUBLIC,
+    capabilities: {
+      ledgers: true,
+      transactions: true,
+      events: true,
+      accountOffers: true,
+      fullHistory: true,
+      defaultReadSource: 'rpc',
+    },
   },
   testnet: {
     name: 'Testnet',
@@ -186,6 +217,14 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
     sorobanUrl: 'https://soroban-testnet.stellar.org',
     passphrase: StellarSdk.Networks.TESTNET,
     faucetUrl: 'https://friendbot.stellar.org',
+    capabilities: {
+      ledgers: true,
+      transactions: true,
+      events: true,
+      accountOffers: true,
+      fullHistory: true,
+      defaultReadSource: 'rpc',
+    },
   },
   futurenet: {
     name: 'Futurenet',
@@ -193,12 +232,28 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
     sorobanUrl: 'https://soroban-futurenet.stellar.org',
     passphrase: StellarSdk.Networks.FUTURENET,
     faucetUrl: 'https://friendbot-futurenet.stellar.org',
+    capabilities: {
+      ledgers: true,
+      transactions: true,
+      events: true,
+      accountOffers: true,
+      fullHistory: true,
+      defaultReadSource: 'rpc',
+    },
   },
   local: {
     name: 'Local',
     horizonUrl: 'http://localhost:8000',
     sorobanUrl: 'http://localhost:8000/soroban/rpc',
     passphrase: 'Standalone Network ; February 2017',
+    capabilities: {
+      ledgers: true,
+      transactions: true,
+      events: true,
+      accountOffers: true,
+      fullHistory: true,
+      defaultReadSource: 'rpc',
+    },
   },
   custom: {
     name: 'Custom',
@@ -206,6 +261,14 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
     sorobanUrl: '',
     passphrase: '',
     headers: {},
+    capabilities: {
+      ledgers: true,
+      transactions: true,
+      events: true,
+      accountOffers: true,
+      fullHistory: true,
+      defaultReadSource: 'rpc',
+    },
   },
 };
 
