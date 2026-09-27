@@ -199,6 +199,7 @@ export const NETWORKS: Record<NetworkName, NetworkConfig> = {
     horizonUrl: 'http://localhost:8000',
     sorobanUrl: 'http://localhost:8000/soroban/rpc',
     passphrase: 'Standalone Network ; February 2017',
+    faucetUrl: 'http://localhost:8000/friendbot',
   },
   custom: {
     name: 'Custom',
