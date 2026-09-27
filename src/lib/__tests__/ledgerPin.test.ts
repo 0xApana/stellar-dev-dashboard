@@ -184,23 +184,29 @@ describe('currentLedgerSequence', () => {
  * drift apart.
  */
 describe('TAB_PIN_STRATEGY stays aligned with the route registry', () => {
-  const readRouteIds = (file: string, marker: string): Set<string> => {
-    const source = readFileSync(resolve(process.cwd(), file), 'utf8');
-    const start = source.indexOf(marker);
-    expect(start, `could not find "${marker}" in ${file}`).toBeGreaterThan(-1);
-    const ids = new Set<string>();
-    for (const match of source.slice(start).matchAll(/^ {2}(\w+):/gm)) {
-      ids.add(match[1]);
-    }
-    return ids;
-  };
+  // The registry is read out of the source text rather than imported, because
+  // `routes.ts` carries `import()` loaders that the transform resolves
+  // eagerly - one of them currently points at a component that does not exist
+  // in `master`, so importing the module would fail for reasons that have
+  // nothing to do with ledger pinning. Scoping the scan to the `ROUTES` array
+  // keeps unrelated `id:` fields out of the set.
+  const routesSource = readFileSync(resolve(process.cwd(), 'src/routes/routes.ts'), 'utf8');
+  const routesBody = routesSource.slice(
+    routesSource.indexOf('export const ROUTES'),
+    routesSource.indexOf('export const ROUTES_BY_ID')
+  );
+  const routeIds = new Set(
+    [...routesBody.matchAll(/^ {4}id: '([^']+)'/gm)].map((match) => match[1])
+  );
 
-  const routeIds = readRouteIds('src/routes/DashboardLayout.tsx', 'const TABS');
+  it('parses a non-empty route registry (guards the scan above)', () => {
+    expect(routeIds.size).toBeGreaterThan(0);
+    expect(routeIds.has('overview')).toBe(true);
+    expect(routeIds.has('transactions')).toBe(true);
+  });
 
   it('every route that can honour a pin is a route the app actually has', () => {
-    const honoured = Object.keys(TAB_PIN_STRATEGY);
-
-    const unknown = honoured.filter((id) => !routeIds.has(id));
+    const unknown = Object.keys(TAB_PIN_STRATEGY).filter((id) => !routeIds.has(id));
     expect(unknown, `pin strategies reference routes that no longer exist: ${unknown}`).toEqual(
       []
     );
@@ -208,10 +214,10 @@ describe('TAB_PIN_STRATEGY stays aligned with the route registry', () => {
 
   it('does not claim pin support for a route it cannot prove is pinnable', () => {
     // Anything claiming `cursor` or `paging` must be an explicitly reviewed
-    // entry, which is true by construction — this test exists to fail loudly if
+    // entry, which is true by construction - this test exists to fail loudly if
     // the table is ever rebuilt from a default that is too generous.
-    const claims = Object.entries(TAB_PIN_STRATEGY).filter(([, s]) => s !== 'none');
-    for (const [id] of claims) {
+    for (const [id, strategy] of Object.entries(TAB_PIN_STRATEGY)) {
+      if (strategy === 'none') continue;
       expect(routeIds.has(id), `${id} is not a known route`).toBe(true);
     }
   });
