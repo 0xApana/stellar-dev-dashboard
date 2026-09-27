@@ -55,6 +55,33 @@ Modals use `FocusManager` with `trapFocus` and `restoreFocusOnUnmount`:
 - Keyboard shortcuts help
 - User preferences (`DashboardLayout.tsx`)
 
+### Nested overlays (modals and drawers)
+
+When overlays stack (a dialog opening inside a dialog, or a drawer above a
+modal), Escape must close the **topmost** overlay first and Tab must never
+leak into background content. Two tools support this (#874):
+
+**Prevention — `useOverlayKeyboardGuard`** (`src/hooks/useOverlayKeyboardGuard.ts`):
+registers each open overlay in a LIFO stack so Escape always reaches the
+right layer, and wraps Tab within the overlay's focusables:
+
+```tsx
+import { useOverlayKeyboardGuard } from '../hooks/useOverlayKeyboardGuard';
+
+const containerRef = useRef<HTMLDivElement>(null);
+const guard = useOverlayKeyboardGuard({ onClose: () => setOpen(false), containerRef });
+
+return (
+  <div role="dialog" aria-modal="true" ref={containerRef} {...guard}>…</div>
+);
+```
+
+Use it on every overlay in a stack — including nested ones — so the guard
+knows the full layer order. While disabled (overlay closed) the hook is inert.
+
+**Detection — `auditOverlayStacks`**: audits the live DOM for trap risks
+(see below) so regressions surface in CI instead of at runtime.
+
 ## Audit utilities
 
 `src/lib/keyboardNavigationAudit.ts` provides programmatic checks:
@@ -62,6 +89,7 @@ Modals use `FocusManager` with `trapFocus` and `restoreFocusOnUnmount`:
 ```ts
 import {
   auditRouteKeyboardNavigation,
+  auditOverlayStacks,
   DASHBOARD_ROUTES,
   isKeyboardNavigationSupported,
 } from '../lib/keyboardNavigationAudit';
@@ -75,14 +103,42 @@ const result = auditRouteKeyboardNavigation('overview', document);
 console.log(result.passed, result.tabOrderIssues);
 ```
 
+### Overlay stack audit (#874)
+
+`auditOverlayStacks(root?)` reports every modal / drawer container from
+outermost to innermost — nesting `depth`, the `stackPath` of ancestor
+overlays, and a `trapRisk` rating — plus these issues:
+
+| Code | Severity | Meaning |
+| --- | --- | --- |
+| `no-escape-control` | error | No close/cancel affordance; Escape is blocked |
+| `no-focusable-content` | error | Focus can enter an empty overlay but cannot Tab anywhere |
+| `background-not-inert` | warning | `aria-modal` is open while background content is still tabbable |
+| `focus-restoration-unhinted` | warning | No `data-return-focus` marker, so focus restoration could not be verified |
+
+Overlay containers are detected via `role="dialog"`, `role="alertdialog"`,
+`aria-modal="true"`, `data-overlay="drawer"`, or `data-drawer`. Class names
+are intentionally ignored — backdrops like `mobile-drawer-backdrop` are not
+overlays. The route-level audit (`auditRouteKeyboardNavigation`) includes the
+stack audit in its `overlayStack` field and fails the route when the stack
+has errors.
+
+```ts
+const stack = auditOverlayStacks(document);
+if (!stack.passed) {
+  console.table(stack.entries.flatMap((e) => e.issues));
+}
+```
+
 ### Invalid input handling
 
 - Empty or whitespace route names return `supported: false` with reason `"Route path is empty or invalid"`.
+- `auditOverlayStacks` with a missing/invalid root returns `supported: false` with a descriptive reason instead of throwing.
 - Connect form sets `aria-invalid="true"` and `role="alert"` on validation errors.
 
 ### Unsupported environments
 
-When `document` or `window` is unavailable (SSR, unit tests without DOM), audit functions return empty results and `environmentSupported: false` rather than throwing.
+When `document` or `window` is unavailable (SSR, unit tests without DOM), audit functions return empty results and `environmentSupported: false` rather than throwing. `useOverlayKeyboardGuard` is likewise inert without a DOM.
 
 ## Dashboard routes covered
 
@@ -98,7 +154,9 @@ All routes in `DASHBOARD_ROUTES` (`src/lib/keyboardNavigationAudit.ts`) must mai
 npm test -- tests/unit/lib/keyboardNavigationAudit.test.ts
 ```
 
-Covers focusable element discovery, tab-order issues, modal trap detection, invalid route input, and environment detection.
+Covers focusable element discovery, tab-order issues, modal trap detection, nested overlay stack auditing (#874), invalid route input, and environment detection.
+
+`src/hooks/__tests__/useOverlayKeyboardGuard.test.tsx` covers the guard hook: topmost-only Escape, LIFO ordering across nested overlays, Tab wrap-around, and disabled/inert behavior.
 
 ### End-to-end tests (Playwright)
 
