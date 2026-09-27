@@ -222,6 +222,11 @@ XLM balance over time using the Recharts `AreaChart`.
 
 React error boundary that catches render errors and shows `<ErrorFallback>`.
 
+### `<ContextualEmptyState>`
+**File:** `src/components/common/ContextualEmptyState.tsx`
+
+Replaces blank panels with a title, a reason and up to three next-best actions that link to related tools. Actions come from presets in `src/lib/emptyStates.ts` and are filtered by route registry, network, expertise and feature flags. See [EMPTY_STATES.md](./EMPTY_STATES.md).
+
 ### `<CopyableValue>`
 **File:** `src/components/dashboard/CopyableValue.jsx`
 
