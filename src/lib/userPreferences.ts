@@ -5,6 +5,8 @@
  */
 
 import { getStoredValue, setStoredValue, removeStoredValue } from './storage'
+import { preferenceUndoManager, type PreferenceCategory, type UndoResult } from './preferenceUndoManager'
+
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -391,7 +393,11 @@ export async function savePreferences(prefs: Partial<UserPreferences>): Promise<
     ...next.sync,
     pendingChanges: explicitPendingChanges ? prefs.sync!.pendingChanges : (current.sync?.pendingChanges || 0) + 1,
   }
-  await setStoredValue(PREFS_KEY, next)
+  try {
+    await setStoredValue(PREFS_KEY, next)
+  } catch (err) {
+    console.warn('Failed to persist preferences to storage:', err)
+  }
   return next
 }
 
@@ -400,6 +406,60 @@ export async function updatePreference<K extends keyof UserPreferences>(
   value: UserPreferences[K]
 ): Promise<UserPreferences> {
   return savePreferences({ [key]: value } as Partial<UserPreferences>)
+}
+
+export async function savePreferencesWithUndo(
+  prefs: Partial<UserPreferences>,
+  options: { label?: string; category?: PreferenceCategory } = {}
+): Promise<{ next: UserPreferences; undoResult: UndoResult }> {
+  const current = await loadPreferences()
+  const next = await savePreferences(prefs)
+
+  const category = options.category || 'general'
+  const key = Object.keys(prefs).join(', ') || 'preferences'
+  const label = options.label || `Updated ${key}`
+
+  const undoResult = preferenceUndoManager.recordAction({
+    category,
+    key,
+    label,
+    previousValue: current,
+    nextValue: next,
+    restore: async () => {
+      await setStoredValue(PREFS_KEY, current)
+      return current
+    },
+  })
+
+  return { next, undoResult }
+}
+
+export async function updatePreferenceWithUndo<K extends keyof UserPreferences>(
+  key: K,
+  value: UserPreferences[K],
+  options: { label?: string; category?: PreferenceCategory } = {}
+): Promise<{ next: UserPreferences; undoResult: UndoResult }> {
+  const current = await loadPreferences()
+  const previousValue = current[key]
+  const next = await updatePreference(key, value)
+
+  const schemaDef = PREFERENCE_SCHEMA.find((def) => def.key === key)
+  const category = options.category || schemaDef?.category || (key === 'theme' ? 'theme' : key === 'dashboardLayout' ? 'layout' : 'general')
+  const label = options.label || `Changed ${schemaDef?.label || String(key)} to ${String(value)}`
+
+  const undoResult = preferenceUndoManager.recordAction({
+    category,
+    key: String(key),
+    label,
+    previousValue,
+    nextValue: value,
+    restore: async () => {
+      const restored = await savePreferences({ [key]: previousValue } as Partial<UserPreferences>)
+      return restored
+    },
+  })
+
+  return { next, undoResult }
 }
 
 // ─── Dashboard Layout Helpers (Issue #198) ────────────────────────────────────
@@ -411,6 +471,27 @@ export async function saveDashboardLayout(layout: WidgetLayout[]): Promise<UserP
   return updatePreference('dashboardLayout', layout);
 }
 
+export async function saveDashboardLayoutWithUndo(
+  layout: WidgetLayout[],
+  options: { label?: string } = {}
+): Promise<{ next: UserPreferences; undoResult: UndoResult }> {
+  const currentLayout = await getDashboardLayout()
+  const next = await saveDashboardLayout(layout)
+
+  const undoResult = preferenceUndoManager.recordAction({
+    category: 'layout',
+    key: 'dashboardLayout',
+    label: options.label || 'Updated Dashboard Layout',
+    previousValue: currentLayout,
+    nextValue: layout,
+    restore: async () => {
+      return saveDashboardLayout(currentLayout)
+    },
+  })
+
+  return { next, undoResult }
+}
+
 /**
  * Retrieves the current dashboard layout array.
  */
@@ -418,6 +499,28 @@ export async function getDashboardLayout(): Promise<WidgetLayout[]> {
   const prefs = await loadPreferences();
   return prefs.dashboardLayout || [];
 }
+
+export async function resetPreferencesWithUndo(
+  options: { label?: string } = {}
+): Promise<{ next: UserPreferences; undoResult: UndoResult }> {
+  const previous = await loadPreferences()
+  const next = await resetPreferences()
+
+  const undoResult = preferenceUndoManager.recordAction({
+    category: 'general',
+    key: 'allPreferences',
+    label: options.label || 'Reset Preferences to Defaults',
+    previousValue: previous,
+    nextValue: next,
+    restore: async () => {
+      await setStoredValue(PREFS_KEY, previous)
+      return previous
+    },
+  })
+
+  return { next, undoResult }
+}
+
 
 // ─── Address book helpers ─────────────────────────────────────────────────────
 
