@@ -14,6 +14,7 @@ import {
   buildILCurve,
 } from "../../lib/defiAnalytics";
 import { estimateLiquidityPosition, isLiquidityPoolNetworkSupported } from "../../lib/liquidityPosition";
+import PoolPerformanceTrends from "./PoolPerformanceTrends";
 import type { LiquidityPool, LiquidityPosition } from "./types";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, ReferenceLine,
@@ -492,6 +493,10 @@ function PerformancePanel({ pools, selectedPool, poolTrades, tradesLoading }: {
             <Stat label={`${selected.pool.assetCodeB} Reserve`} value={formatNumber(selected.pool.reserveB)} />
             <Stat label="Total Shares" value={formatNumber(selected.pool.totalShares, 4)} />
             <Stat label={`${selected.pool.assetCodeA}/${selected.pool.assetCodeB} Price`} value={formatNumber(selected.pool.priceBperA)} />
+          </div>
+          {/* Fee APR + volume trends reconstructed from recent trades (#862). */}
+          <div style={{ marginTop: "14px" }}>
+            <PoolPerformanceTrends pool={selected.pool} trades={poolTrades} loading={tradesLoading} />
           </div>
         </div>
       )}
