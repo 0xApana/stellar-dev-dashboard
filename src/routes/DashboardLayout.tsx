@@ -2,6 +2,7 @@ import React, {
   lazy,
   Suspense,
   useEffect,
+  useMemo,
   useState,
   useCallback,
   type ComponentType,
@@ -50,6 +51,9 @@ import ExpertiseBadge from '../components/expertise/ExpertiseBadge';
 import PredictiveFeatureSuggestions from '../components/dashboard/PredictiveFeatureSuggestions';
 import TipButton from '../components/ai/TipButton';
 import { useWalletSessionListeners } from '../hooks/useWalletSessionListeners';
+import ShareViewButton from '../components/share/ShareViewButton';
+import SharedViewBanner from '../components/share/SharedViewBanner';
+import { useSharedView } from '../hooks/useSharedView';
 
 interface SearchResult {
   type?: string;
@@ -349,6 +353,13 @@ export default function DashboardLayout() {
 
   const ActiveComponent: TabComponent = TABS[activeTab] || Overview;
 
+  // Route ids the app can actually render, handed to the shared-view decoder so
+  // an unrecognised `t=` in a link degrades to the overview instead of routing
+  // somewhere unexpected.
+  const shareableTabs = useMemo(() => Object.keys(TABS), []);
+
+  const sharedView = useSharedView({ knownTabs: shareableTabs });
+
   const getMainStyles = (): CSSProperties => {
     const baseStyles: CSSProperties = {
       flex: 1,
@@ -440,6 +451,7 @@ export default function DashboardLayout() {
               <GlobalSearch onSelectResult={handleSearchResult} />
             </div>
             <ThemeToggle />
+            <ShareViewButton />
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <NetworkIndicator />
             </div>
@@ -483,6 +495,11 @@ export default function DashboardLayout() {
           <div style={{ marginBottom: '16px' }}>
             <PriceTicker />
           </div>
+          <SharedViewBanner
+            view={sharedView}
+            onExit={sharedView.exitSharedView}
+            onSwitchNetwork={sharedView.switchToSnapshotNetwork}
+          />
           <ErrorBoundary onRetry={handleRetry} maxRetries={2}>
             {!connectedAddress ? (
               <ConnectPanel />
