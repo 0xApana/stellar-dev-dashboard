@@ -184,3 +184,9 @@ MIT © 2025 — See [LICENSE](./LICENSE) for details.
 Built on top of the [Stellar SDK](https://github.com/stellar/js-stellar-sdk) and [Horizon API](https://developers.stellar.org/api/horizon) by the Stellar Development Foundation.
 
 Part of the [Stellar Wave Program](https://www.drips.network/wave/stellar) — funding open-source development on Stellar via [Drips](https://www.drips.network).
+
+### New Features (2026 Q3)
+- **Transactions**: Annotate counterparties with custom nicknames and risk flags in the transaction history view.
+- **DEX**: Visualize liquidity depth and concentration using Order Book Heatmaps for major trading pairs.
+- **Analytics**: Rapidly respond to detected issues using anomaly-to-action playbooks.
+- **UX**: Use the new guided first-run onboarding checklist for a smoother initial setup experience.
