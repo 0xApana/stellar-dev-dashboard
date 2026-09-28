@@ -1,6 +1,15 @@
-import React, { lazy, Suspense, useEffect, useState, useCallback, type CSSProperties } from 'react';
+import React, {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  type ComponentType,
+  type CSSProperties,
+} from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { matchRoute, buildPath, getDocumentTitle, type TabComponent } from './routes';
+import { matchRoute, buildPath, getDocumentTitle, ROUTES_BY_ID, type TabComponent } from './routes';
 import { getRouteComponent } from './routeComponents';
 import NotFound from './NotFound';
 import Sidebar from '../components/layout/Sidebar';
@@ -12,6 +21,7 @@ import RealTimeNotificationCenter from '../components/notifications/RealTimeNoti
 import { useRealTimeNotifications } from '../hooks/useRealTimeNotifications';
 import { initCache } from '../lib/cacheInit';
 import ErrorBoundary from '../components/ErrorBoundary';
+import RouteErrorBoundary from '../components/routes/RouteErrorBoundary';
 import { useStore } from '../lib/store';
 import { useResponsive } from '../hooks/useResponsive';
 import { initializeErrorReporting, addBreadcrumb } from '../lib/errorReporting';
@@ -45,6 +55,9 @@ import ExpertiseBadge from '../components/expertise/ExpertiseBadge';
 import PredictiveFeatureSuggestions from '../components/dashboard/PredictiveFeatureSuggestions';
 import TipButton from '../components/ai/TipButton';
 import { useWalletSessionListeners } from '../hooks/useWalletSessionListeners';
+import ShareViewButton from '../components/share/ShareViewButton';
+import SharedViewBanner from '../components/share/SharedViewBanner';
+import { useSharedView } from '../hooks/useSharedView';
 import {
   DEMO_MODE_LABEL,
   DEMO_MODE_BADGE,
@@ -328,6 +341,13 @@ export default function DashboardLayout() {
   const txHash = activeRoute?.id === 'transactions' ? routeMatch?.params.hash : undefined;
   const isNotFound = Boolean(connectedAddress) && !routeMatch && !isConnectRoute;
 
+  // Route ids the app can actually render, handed to the shared-view decoder so
+  // an unrecognised `t=` in a link degrades to the overview instead of routing
+  // somewhere unexpected.
+  const shareableTabs = useMemo(() => Object.keys(ROUTES_BY_ID), []);
+
+  const sharedView = useSharedView({ knownTabs: shareableTabs });
+
   const getMainStyles = (): CSSProperties => {
     const baseStyles: CSSProperties = {
       flex: 1,
@@ -419,6 +439,7 @@ export default function DashboardLayout() {
               <GlobalSearch onSelectResult={handleSearchResult} />
             </div>
             <ThemeToggle />
+            <ShareViewButton />
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <NetworkIndicator />
             </div>
@@ -462,6 +483,11 @@ export default function DashboardLayout() {
           <div style={{ marginBottom: '16px' }}>
             <PriceTicker />
           </div>
+          <SharedViewBanner
+            view={sharedView}
+            onExit={sharedView.exitSharedView}
+            onSwitchNetwork={sharedView.switchToSnapshotNetwork}
+          />
           {isDemoMode && (
             <div
               data-testid="demo-mode-banner"
@@ -538,9 +564,17 @@ export default function DashboardLayout() {
                 <TransactionDetail txHash={txHash} onClose={() => navigate('/transactions')} />
               </Suspense>
             ) : ActiveComponent ? (
-              <Suspense fallback={<TabLoadingFallback />}>
-                <ActiveComponent />
-              </Suspense>
+              <RouteErrorBoundary
+                routeName={activeRoute?.title || activeTab}
+                routePath={location.pathname}
+                onRetry={handleRetry}
+                onNavigateHome={() => navigate('/overview')}
+                maxRetries={2}
+              >
+                <Suspense fallback={<TabLoadingFallback />}>
+                  <ActiveComponent />
+                </Suspense>
+              </RouteErrorBoundary>
             ) : (
               <NotFound />
             )}

@@ -1,43 +1,80 @@
 # Security Policy
 
-## Federation and SEP endpoint trust
+## Supported Versions
 
-Federation and SEP endpoints discovered through `stellar.toml` are restricted
-to the originating home domain and configured trusted domains. See
-[`docs/security/endpoint-allowlist.md`](docs/security/endpoint-allowlist.md)
-for compatibility and migration guidance.
-
-## Overview
-This document outlines the security architecture and threat model for the `stellar-dev-dashboard`. Our security strategy focuses on frontend hardening, automated dependency management, and restrictive communication policies.
-
-## Threat Model Matrix
-
-| Threat Vector | Description | Remediation Strategy | Automated Compliance |
-| :--- | :--- | :--- | :--- |
-| **Cross-Site Scripting (XSS)** | Injection of malicious scripts via user input or third-party dependencies. | Restrictive CSP (no `unsafe-inline`), nonce-based execution, and input sanitisation. | NPM Audit CI Gate, CSP Header Validation. |
-| **Dependency Vulnerabilities** | Exploitation of known vulnerabilities in project dependencies. | Daily automated audits and proactive dependency updates. | Dependabot, GitHub Actions (`dependency-check.yml`). |
-| **Data Exfiltration** | Unauthorised transmission of sensitive data to malicious endpoints. | Strict `connect-src` CSP directive limiting traffic to Stellar and CoinGecko APIs. | Nginx CSP Enforcement. |
-| **Clickjacking** | Embedding the dashboard in malicious frames to trick users. | `X-Frame-Options: SAMEORIGIN` and `frame-ancestors: 'none'` CSP directive. | Nginx Header Injection. |
-| **Insecure Connections** | Downgrade attacks or unencrypted data transmission. | Forced HTTPS via `upgrade-insecure-requests` CSP directive. | Nginx Configuration. |
-
-## Security Architecture Blueprint
-
-### 1. Content Security Policy (CSP)
-We enforce a strict CSP through both Nginx and React-level meta tags. 
-- **Nonces**: Cryptographically strong nonces are generated for inline scripts and styles.
-- **Restrictions**: `'unsafe-inline'` is prohibited in production.
-- **Allowed Sources**: 
-  - Scripts/Styles: `'self'`
-  - API Connections/Wallets: `https://*.stellar.org`, `wss://*.stellar.org`, `https://*.sorobanrpc.com`, `https://api.coingecko.com`, `wss://*.walletconnect.com`, `https://*.walletconnect.com`, `https://*.walletconnect.org`, `https://albedo.link`, `https://*.albedo.link`
-  - Inline Scripts: Allowed via strict SHA-256 hash validation for the theme initialization script.
-
-### Adding New Wallet or API Endpoints
-To add a new endpoint or wallet integration, update the `Content-Security-Policy` header in `nginx.conf` and the corresponding meta tag in `index.html`. Add the domains to `connect-src` (for APIs/WebSocket) or `frame-src` (for iframes).
-
-### 2. Automated Guardrails
-- **Dependabot**: Monitors `npm` and `github-actions` ecosystems daily for updates.
-- **CI Security Audit**: Every push and pull request triggers an `npm audit --audit-level=high` check. Failure to meet this threshold blocks the deployment pipeline.
-- **Intelligent Dependency Management (#602)**: In-app analysis engine (`src/lib/dependencyManagement.ts`) correlates vulnerability databases / npm audit data, produces risk-scored update recommendations, detects version conflicts, and exposes a dashboard tab (`Dependencies`) plus the Security Dashboard dependency panel.
+Security fixes are applied to the latest release on the default branch. Older
+releases may not receive backports; please upgrade to the latest version before
+reporting an issue.
 
 ## Reporting a Vulnerability
-If you discover a security vulnerability within this project, please send an e-mail to security@stellar-dev-dashboard.org. All security vulnerabilities will be promptly addressed.
+
+Please do **not** open a public issue for security vulnerabilities. Instead,
+report them privately using GitHub's [private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability)
+feature for this repository, or contact the maintainers directly.
+
+When reporting, please include:
+
+- A description of the vulnerability and its impact.
+- Steps to reproduce (proof of concept if possible).
+- Affected versions and environment details.
+- Any suggested remediation.
+
+We aim to acknowledge reports within a few business days and will keep you
+updated as we investigate and remediate.
+
+## Privileged Actions and Audit Export
+
+Privileged dashboard actions — including Mainnet writes and settings changes —
+are recorded in a tamper-evident audit log. The log is append-only and each
+entry is chained to the previous entry via a cryptographic hash so that any
+modification, reordering, or deletion of historical records is detectable.
+
+### Exporting the audit log
+
+Compliance and security reviewers can export the audit log from the compliance
+dashboard. The export is available in two formats:
+
+- **JSON** — machine-readable, includes the full hash chain for verification.
+- **CSV** — human-readable summary for spreadsheet review.
+
+Each export includes the chain head hash so that reviewers can verify the
+exported records against the live log.
+
+### Verifying an export
+
+To verify that an exported log has not been tampered with, recompute the hash
+chain from the first record to the last and confirm that the final hash matches
+the exported chain head. A mismatch indicates that the log was altered after it
+was written and should be treated as a security incident.
+
+### Handling invalid input and unsupported environments
+
+- Requests for an unsupported export format are rejected with a clear error
+  rather than silently falling back to a default format.
+- Requests for a time range that is malformed or inverted (end before start)
+  are rejected with a validation error.
+- Audit export is only available in environments where the audit log is
+  enabled. In environments where it is disabled or unsupported, the export
+  endpoint returns an explicit "unsupported environment" error instead of an
+  empty or misleading result.
+- If the audit store is unavailable, the export fails closed: no partial or
+  unverified data is returned, and the failure is surfaced to the caller.
+
+### Compatibility and migration notes
+
+- The audit log format is versioned. Exports include a format version so that
+  consumers can detect and handle schema changes.
+- Existing deployments that predate the audit log will not have historical
+  entries; the log begins at the point the feature was enabled. No migration is
+  required, but reviewers should be aware that pre-enablement actions are not
+  covered.
+- Enabling the audit log does not change the behavior of privileged actions;
+  it only records them.
+
+## Security Best Practices for Contributors
+
+- Never commit secrets, tokens, or credentials.
+- Validate and sanitize all external input.
+- Fail closed on error paths for security-sensitive operations.
+- Add tests for the primary flow, at least one boundary case, and at least one
+  failure case when changing security-relevant code.

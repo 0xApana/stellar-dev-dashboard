@@ -8,7 +8,9 @@
  */
 
 import { getStoredValue, setStoredValue } from './storage'
+import { preferenceUndoManager, type UndoResult } from './preferenceUndoManager'
 import type { NotificationCategory } from './notificationCategories'
+
 import type { NotificationPriority } from './notificationCategories'
 import { NOTIFICATION_CATEGORIES } from './notificationCategories'
 import type { NotificationFilterConfig } from './notificationFilter'
@@ -104,8 +106,34 @@ export async function saveNotificationPreferences(
     soundsEnabled: { ...current.soundsEnabled, ...(prefs.soundsEnabled || {}) },
     pushEnabled: { ...current.pushEnabled, ...(prefs.pushEnabled || {}) },
   }
-  await setStoredValue(NOTIFICATION_PREFS_KEY, next)
+  try {
+    await setStoredValue(NOTIFICATION_PREFS_KEY, next)
+  } catch (err) {
+    console.warn('Failed to persist notification preferences to storage:', err)
+  }
   return next
+}
+
+export async function saveNotificationPreferencesWithUndo(
+  prefs: Partial<NotificationPreferences>,
+  options: { label?: string } = {}
+): Promise<{ next: NotificationPreferences; undoResult: UndoResult }> {
+  const current = await loadNotificationPreferences()
+  const next = await saveNotificationPreferences(prefs)
+
+  const undoResult = preferenceUndoManager.recordAction({
+    category: 'notifications',
+    key: 'notificationPreferences',
+    label: options.label || 'Updated Notification Preferences',
+    previousValue: current,
+    nextValue: next,
+    restore: async () => {
+      await setStoredValue(NOTIFICATION_PREFS_KEY, current)
+      return current
+    },
+  })
+
+  return { next, undoResult }
 }
 
 export async function resetNotificationPreferences(): Promise<NotificationPreferences> {
@@ -113,6 +141,28 @@ export async function resetNotificationPreferences(): Promise<NotificationPrefer
   await setStoredValue(NOTIFICATION_PREFS_KEY, defaults)
   return defaults
 }
+
+export async function resetNotificationPreferencesWithUndo(
+  options: { label?: string } = {}
+): Promise<{ next: NotificationPreferences; undoResult: UndoResult }> {
+  const current = await loadNotificationPreferences()
+  const next = await resetNotificationPreferences()
+
+  const undoResult = preferenceUndoManager.recordAction({
+    category: 'notifications',
+    key: 'notificationPreferences',
+    label: options.label || 'Reset Notification Preferences',
+    previousValue: current,
+    nextValue: next,
+    restore: async () => {
+      await setStoredValue(NOTIFICATION_PREFS_KEY, current)
+      return current
+    },
+  })
+
+  return { next, undoResult }
+}
+
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -11,6 +11,8 @@
   "scripts": {
     "check:node": "node scripts/node-version-policy.mjs",
     "test:node-support": "node --test tests/node-version-policy.test.mjs",
+    "bootstrap:docker": "node scripts/docker-compose-bootstrap.mjs",
+    "test:docker-bootstrap": "node --test tests/ci/docker-compose-bootstrap.test.mjs",
     "ml:train": "node src/ml/train.js",
     "ml:train:liquidity": "node src/ml/trainLiquidity.cjs",
     "ml:train:phishing": "node src/ml/train_phishing.cjs",
@@ -36,8 +38,6 @@
     "test:coverage": "vitest run --coverage --config vitest.config.js",
     "test:unit": "vitest run --config vitest.config.js --dir src",
     "test:integration": "vitest run --config vitest.config.js --dir tests/integration",
-    "test:jest": "jest",
-    "test:jest:coverage": "jest --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:visual": "playwright test --project=visual-mobile --project=visual-tablet --project=visual-desktop --project=visual-wide",
@@ -60,6 +60,7 @@
     "check:package-manager": "node scripts/validate-package-manager.mjs",
     "sbom:generate": "node scripts/generate-sbom.mjs",
     "api:start": "node api/server.js",
+    "seed:local": "node scripts/seed-local-stellar.mjs",
     "canary:probe": "node scripts/canary-health-probe.mjs",
     "demo:seed": "node scripts/seed-demo-fixtures.mjs",
     "demo:seed:check": "node scripts/seed-demo-fixtures.mjs --check"
@@ -104,9 +105,6 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.10.0",
-    "@babel/preset-env": "^7.29.3",
-    "@babel/preset-react": "^7.24.7",
-    "@babel/preset-typescript": "^7.24.7",
     "@eslint/js": "^9.39.4",
     "@lhci/cli": "^0.14.0",
     "@playwright/test": "^1.59.1",
@@ -120,7 +118,6 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/express": "^5.0.6",
-    "@types/jest": "^29.5.13",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
     "@types/uuid": "^9.0.8",

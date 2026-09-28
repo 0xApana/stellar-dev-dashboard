@@ -7,6 +7,7 @@ import { generateInsights, type AnalyticsSummary } from './analytics'
 import { accountRequests } from './requestCancellation'
 import { applyCustomThemeToDOM, removeCustomThemeFromDOM, saveThemeVarsToStorage, clearThemeVarsFromStorage, type ThemeDefinition } from '../styles/themeTypes'
 import { handleNetworkSwitch } from './cacheInit'
+import { normalizeLedgerSequence } from './ledgerPin'
 import { hydrateDemoState } from './demoMode'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -283,6 +284,17 @@ export interface StoreState {
   showLedgerStatsWidget: boolean
   addLedgerStatsEntry: (entry: LedgerStatsEntry) => void
   toggleLedgerStatsWidget: () => void
+
+  /**
+   * Pinned ledger sequence for shared views (#share-links).
+   *
+   * Deliberately NOT in PERSIST_KEYS: a pin is a property of a shared link and
+   * of the current session, not a durable preference. Persisting it would leave
+   * a stale pin silently applied to later unrelated work in the same browser.
+   * The URL is the source of truth, and `useSharedView` re-applies on load.
+   */
+  ledgerPin: number | null
+  setLedgerPin: (sequence: number | null) => void
 
   // Per-network data buckets for cross-network switching
   perNetworkData: Record<string, NetworkScopedData>
@@ -710,6 +722,10 @@ export const useStore = create<StoreState>((set) => ({
     }
   }),
   toggleLedgerStatsWidget: () => set((state) => ({ showLedgerStatsWidget: !state.showLedgerStatsWidget })),
+
+  // Ledger pin (shared views). Session-scoped; see the note on the interface.
+  ledgerPin: null,
+  setLedgerPin: (sequence) => set({ ledgerPin: sequence === null ? null : normalizeLedgerSequence(sequence) }),
 
   // RBAC (#410)
   currentUserRole: 'viewer',
