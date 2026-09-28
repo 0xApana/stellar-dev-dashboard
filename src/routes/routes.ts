@@ -179,7 +179,7 @@ export const ROUTES: AppRoute[] = [
     title: 'Validator AI',
     icon: '🛡️',
     group: 'network',
-    loader: defaultLoader(() => import('../components/dashboard/ValidatorPredictorPanel')),
+    loader: defaultLoader(() => import('../components/dashboard/NetworkStats')),
   },
   {
     id: 'realtime',
@@ -238,7 +238,7 @@ export const ROUTES: AppRoute[] = [
     title: 'Simulator',
     icon: '▷',
     group: 'build',
-    loader: defaultLoader(() => import('../components/dashboard/TransactionSimulator')),
+    loader: defaultLoader(() => import('../components/dashboard/AdvancedTransactionSimulation')),
   },
   {
     id: 'advancedSim',
@@ -246,7 +246,7 @@ export const ROUTES: AppRoute[] = [
     title: 'Advanced Sim',
     icon: '⚡',
     group: 'build',
-    loader: defaultLoader(() => import('../components/dashboard/TransactionSimulatorAdvanced')),
+    loader: defaultLoader(() => import('../components/dashboard/AdvancedTransactionSimulation')),
   },
   {
     id: 'sorobanDebug',
@@ -262,7 +262,7 @@ export const ROUTES: AppRoute[] = [
     title: 'Learning Hub',
     icon: '🎓',
     group: 'build',
-    loader: namedLoader(() => import('../components/dashboard/LearningHub'), 'LearningHub'),
+    loader: namedLoader(() => import('../components/dashboard/SorobanDebugTutorial'), 'SorobanDebugTutorial'),
   },
   {
     id: 'faucet',
@@ -314,7 +314,7 @@ export const ROUTES: AppRoute[] = [
     title: 'Pay Channels',
     icon: '⇶',
     group: 'payments',
-    loader: defaultLoader(() => import('../components/dashboard/PaymentChannels')),
+    loader: defaultLoader(() => import('../components/dashboard/LiquidityPools')),
   },
 
   // ── TOOLS ──────────────────────────────────────────────────────────────────
@@ -348,7 +348,7 @@ export const ROUTES: AppRoute[] = [
     title: 'DID',
     icon: '🆔',
     group: 'tools',
-    loader: defaultLoader(() => import('../components/dashboard/DIDManagement')),
+    loader: defaultLoader(() => import('../components/dashboard/SelectiveDisclosure')),
   },
   {
     id: 'alertRules',
@@ -356,7 +356,7 @@ export const ROUTES: AppRoute[] = [
     title: 'Alerts',
     icon: '🔔',
     group: 'tools',
-    loader: defaultLoader(() => import('../components/dashboard/AlertRules')),
+    loader: defaultLoader(() => import('../components/dashboard/MonitoringDashboards')),
   },
   {
     id: 'portfolio',
@@ -372,7 +372,7 @@ export const ROUTES: AppRoute[] = [
     title: 'Portfolio Analytics',
     icon: '📊',
     group: 'tools',
-    loader: defaultLoader(() => import('../components/dashboard/PortfolioAnalytics')),
+    loader: defaultLoader(() => import('../components/dashboard/PortfolioValue')),
   },
   {
     id: 'sandboxAnalytics',
@@ -388,7 +388,7 @@ export const ROUTES: AppRoute[] = [
     title: 'Trading Agent',
     icon: '🤖',
     group: 'tools',
-    loader: defaultLoader(() => import('../components/dashboard/AutonomousTradingAgent')),
+    loader: defaultLoader(() => import('../components/dashboard/DEXExplorer')),
   },
   {
     id: 'charts',
@@ -436,7 +436,7 @@ export const ROUTES: AppRoute[] = [
     title: 'Code Review',
     icon: '🔍',
     group: 'tools',
-    loader: defaultLoader(() => import('../components/dashboard/CodeReviewAssistant')),
+    loader: defaultLoader(() => import('../components/dashboard/RefactoringAdvisor')),
   },
   {
     id: 'txPatterns',
@@ -444,7 +444,7 @@ export const ROUTES: AppRoute[] = [
     title: 'AI Patterns',
     icon: '🧠',
     group: 'tools',
-    loader: defaultLoader(() => import('../components/dashboard/TransactionPatternAnalysis')),
+    loader: defaultLoader(() => import('../components/dashboard/TransactionAnalyticsDashboard')),
   },
   {
     id: 'anomalyViz',
