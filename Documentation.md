@@ -40,6 +40,9 @@ Fund any testnet account directly from the dashboard using Stellar's Friendbot. 
 ### 🔌 Wallet Connect
 Connect any Stellar public key (G...) on either Mainnet or Testnet to load account data, history, and balances instantly.
 
+### 🔗 Shareable View Links
+Reproduce a view exactly instead of sending a screenshot. Press **Share** in the dashboard toolbar to get a link that captures the network, tab, selected entity, and active filters — optionally pinned to a specific ledger sequence so the data reflects that point in time. The recipient's dashboard rebuilds the view, and a banner warns them if the link's network differs from theirs. Links never contain wallet keys, session tokens, or connected-wallet data.
+
 ---
 
 ## Screenshots
