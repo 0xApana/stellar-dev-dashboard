@@ -299,6 +299,14 @@ export const ROUTES: AppRoute[] = [
     loader: defaultLoader(() => import('../components/dashboard/PathExplorer')),
   },
   {
+    id: 'stellarTomlInspector',
+    path: '/stellarTomlInspector',
+    title: 'stellar.toml Inspector',
+    icon: '🧭',
+    group: 'explore',
+    loader: defaultLoader(() => import('../components/dashboard/StellarTomlInspector')),
+  },
+  {
     id: 'explorers',
     path: '/explorers',
     title: 'Explorer Links',
